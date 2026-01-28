@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantum Nexus.io</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at top, #0a0f2c, #000);
+      color: #e0e6ff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+    #ui {
+      position: fixed;
+      top: 10px; left: 10px;
+      z-index: 10;
+      background: rgba(0,0,0,0.5);
+      padding: 10px 14px;
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+    }
+    #ui h1 {
+      font-size: 14px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    #score { font-size: 12px; }
+    #author {
+      position: fixed;
+      bottom: 8px; right: 10px;
+      font-size: 11px;
+      opacity: 0.7;
+      z-index: 10;
+    }
+    #author a { color: #8fa2ff; text-decoration: none; }
+    canvas { display: block; }
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.75);
+      z-index: 20;
+    }
+    .panel {
+      background: rgba(10,15,60,0.85);
+      border-radius: 20px;
+      padding: 28px;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(120,140,255,0.35);
+    }
+    .panel h2 { margin-bottom: 10px; }
+    .panel p { font-size: 13px; opacity: 0.85; margin-bottom: 14px; }
+    .panel button {
+      background: linear-gradient(135deg,#6b7cff,#8fb4ff);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>Quantum Nexus.io</h1>
+    <div id="score">Energia: 0</div>
+  </div>
+
+  <div id="author">
+    Autor: <a href="https://linktr.ee/kitadamian" target="_blank">Damian Kita</a>
+  </div>
+
+  <div id="startScreen">
+    <div class="panel">
+      <h2>Quantum Nexus</h2>
+      <p>Wchłaniaj neurony, dane i qubity. Unikaj większych bytów AI. Rozwijaj świadomość.</p>
+      <button id="startBtn">Start</button>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <!-- AUDIO -->
+  <audio id="bgm" loop src="https://cdn.pixabay.com/download/audio/2022/10/30/audio_6e5fa5f6f6.mp3?filename=future-ambient-12473.mp3"></audio>
+  <audio id="eatSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1b2b4c5c1f.mp3?filename=click-124467.mp3"></audio>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const player = { x: 0, y: 0, r: 18, energy: 0 };
+    let entities = [];
+    let running = false;
+
+    function spawnEntity() {
+      const types = ['neuron','robot','qubit'];
+      const type = types[Math.floor(Math.random()*types.length)];
+      return {
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: 6 + Math.random()*8,
+        type
+      };
+    }
+
+    for(let i=0;i<120;i++) entities.push(spawnEntity());
+
+    function drawEntity(e) {
+      ctx.beginPath();
+      ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+      if(e.type==='neuron') ctx.fillStyle = '#ff7ad9';
+      if(e.type==='robot') ctx.fillStyle = '#7affc9';
+      if(e.type==='qubit') ctx.fillStyle = '#7aa2ff';
+      ctx.fill();
+    }
+
+    function loop() {
+      if(!running) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      entities.forEach(e=>drawEntity(e));
+
+      // player
+      ctx.beginPath();
+      ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      entities = entities.filter(e=>{
+        const dx = e.x-player.x;
+        const dy = e.y-player.y;
+        const d = Math.hypot(dx,dy);
+        if(d < player.r){
+          player.energy++;
+          player.r += 0.15;
+          document.getElementById('score').innerText = 'Energia: ' + player.energy;
+          document.getElementById('eatSound').play();
+          return false;
+        }
+        return true;
+      });
+
+      while(entities.length < 120) entities.push(spawnEntity());
+
+      requestAnimationFrame(loop);
+    }
+
+    function move(x,y){ player.x = x; player.y = y; }
+
+    canvas.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+    canvas.addEventListener('touchmove', e=>{
+      const t = e.touches[0];
+      move(t.clientX, t.clientY);
+    }, {passive:true});
+
+    document.getElementById('startBtn').onclick = ()=>{
+      document.getElementById('startScreen').style.display='none';
+      player.x = canvas.width/2;
+      player.y = canvas.height/2;
+      running = true;
+      document.getElementById('bgm').volume = 0.4;
+      document.getElementById('bgm').play();
+      loop();
+    };
+  </script>
+</body>
+</html>
